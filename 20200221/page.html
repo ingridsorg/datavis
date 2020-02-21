@@ -1,0 +1,41 @@
+<html>
+<head>
+    <style>
+        @keyframes blink {
+            from {
+                stroke-width: 0
+            }
+
+            to {
+                stroke-width: 40
+            }
+        }
+
+        #center {
+            animation-duration: 3s;
+            animation-name: blink;
+            animation-iteration-count: infinite;
+            animation-direction: alternate;
+        }
+    </style>
+</head>
+
+<body>
+    <svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="250" cy="100" r="40" fill="greenyellow" stroke="forestgreen" stroke-width="6" />
+        <circle cx="250" cy="170" r="60" fill="greenyellow" stroke="forestgreen" stroke-width="6" />
+        <circle id="center" cx="250" cy="165" r="20" fill="darkgoldenrod" stroke="darkgoldenrod" />
+        <rect x="217" y="100" width="66" height="25" fill="greenyellow" />
+    </svg>
+
+</body>
+<script>
+    const circle = document.getElementById('center')
+    let isBrown = true
+    circle.addEventListener('click', () => {
+        isBrown = !isBrown
+        circle.setAttribute('fill', isBrown ? 'darkgoldenrod' : 'yellow')
+        circle.setAttribute('stroke', isBrown ? 'darkgoldenrod' : 'yellow')
+    })
+</script>
+</html>
