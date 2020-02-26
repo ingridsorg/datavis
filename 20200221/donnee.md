@@ -8,5 +8,17 @@ Ce jeu de données a été créé par Daria Chemkaeva dans le but de partager de
 
 Qu'est-ce qu'elles représentent?
 
+Elles représentent les différentes cartes du Tarot. 
+
 Quel est le format? (type de fichier...)
+
+On y trouve des données en 2 formats différents : 
+
+- Jpeg
+- Json
+
 Comment les visualiser?
+
+- Jpeg : avec n'importe quel programme qui permet de visualiser et traiter  des images (preview, photoshop, etc.)
+- Json: A travers des requêtes AJAX via du code javaScript
+
