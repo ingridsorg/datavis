@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "batons:dev": "parcel 20200228/src/index.html --out-dir 20200228/dist",
-    "batons:ex3": "parcel 20200228/exercice_3/src/index.html --out-dir 20200228/exercice_3/dist"
+    "batons:ex3": "parcel 20200228/exercice_3/src/index.html --out-dir 20200228/exercice_3/dist",
+    "graph:ex2": "parcel 20200306/exercice_2/src/index.html --out-dir 20200306/exercice_2/dist"
   },
   "author": "",
   "license": "ISC",
