@@ -1,9 +1,8 @@
 Comment les bulles sont-elles créées dans cette version?
 
-- Il faut créer un composante qui gérnère des bulles. Cette composante prend en compte un objet qui contient deux clés (dans ce cas, les données pour la bulle et la valeur d'une année précise) avons un composant qui prends un objet avec deux clés data et yearIndex. data corresponds aux données pour cette bulle en particulier. L'échelle et la couleur sont géréés de la même manière que avec d3. 
+- Il faut créer un composante qui gérnère des bulles. Cette composante prend en compte un objet qui contient deux clés (dans ce cas, les données pour la bulle et la valeur d'une année précise). L'échelle et la couleur sont géréés de la même manière que avec d3. 
 
 - Les attibuts de nos objets sont dynamiques grace au format JSX 
-
 
 Comment les données sont elles jointes aux éléments DOM avec react?
 
