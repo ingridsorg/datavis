@@ -8,12 +8,14 @@
     "batons:dev": "parcel 20200228/src/index.html --out-dir 20200228/dist",
     "batons:ex3": "parcel 20200228/exercice_3/src/index.html --out-dir 20200228/exercice_3/dist",
     "graph:ex2": "parcel 20200306/exercice_2/src/index.html --out-dir 20200306/exercice_2/dist",
-    "graph:carte": "parcel 20200403/src/index.html --out-dir 20200403/dist"
+    "graph:carte": "parcel 20200403/src/index.html --out-dir 20200403/dist",
+    "graph:projet": "parcel 20200424/src/index.html --out-dir 20200424/dist"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "d3": "^5.15.0",
+    "d3-scale": "^3.2.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "xlsx": "^0.15.6"
