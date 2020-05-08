@@ -18803,7 +18803,7 @@ var _irwinHall = _interopRequireDefault(require("./irwinHall"));
 var _exponential = _interopRequireDefault(require("./exponential"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./uniform":"../../node_modules/d3-random/src/uniform.js","./normal":"../../node_modules/d3-random/src/normal.js","./logNormal":"../../node_modules/d3-random/src/logNormal.js","./bates":"../../node_modules/d3-random/src/bates.js","./irwinHall":"../../node_modules/d3-random/src/irwinHall.js","./exponential":"../../node_modules/d3-random/src/exponential.js"}],"../../node_modules/d3/node_modules/d3-scale/src/init.js":[function(require,module,exports) {
+},{"./uniform":"../../node_modules/d3-random/src/uniform.js","./normal":"../../node_modules/d3-random/src/normal.js","./logNormal":"../../node_modules/d3-random/src/logNormal.js","./bates":"../../node_modules/d3-random/src/bates.js","./irwinHall":"../../node_modules/d3-random/src/irwinHall.js","./exponential":"../../node_modules/d3-random/src/exponential.js"}],"../../node_modules/d3-scale/src/init.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18835,29 +18835,22 @@ function initInterpolator(domain, interpolator) {
       break;
 
     case 1:
-      this.interpolator(domain);
-      break;
+      {
+        if (typeof domain === "function") this.interpolator(domain);else this.range(domain);
+        break;
+      }
 
     default:
-      this.interpolator(interpolator).domain(domain);
-      break;
+      {
+        this.domain(domain);
+        if (typeof interpolator === "function") this.interpolator(interpolator);else this.range(interpolator);
+        break;
+      }
   }
 
   return this;
 }
-},{}],"../../node_modules/d3/node_modules/d3-scale/src/array.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.slice = exports.map = void 0;
-var array = Array.prototype;
-var map = array.map;
-exports.map = map;
-var slice = array.slice;
-exports.slice = slice;
-},{}],"../../node_modules/d3/node_modules/d3-scale/src/ordinal.js":[function(require,module,exports) {
+},{}],"../../node_modules/d3-scale/src/ordinal.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18866,19 +18859,13 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = ordinal;
 exports.implicit = void 0;
 
-var _d3Collection = require("d3-collection");
+var _init = require("./init.js");
 
-var _array = require("./array");
-
-var _init = require("./init");
-
-var implicit = {
-  name: "implicit"
-};
+const implicit = Symbol("implicit");
 exports.implicit = implicit;
 
 function ordinal() {
-  var index = (0, _d3Collection.map)(),
+  var index = new Map(),
       domain = [],
       range = [],
       unknown = implicit;
@@ -18897,19 +18884,19 @@ function ordinal() {
 
   scale.domain = function (_) {
     if (!arguments.length) return domain.slice();
-    domain = [], index = (0, _d3Collection.map)();
-    var i = -1,
-        n = _.length,
-        d,
-        key;
+    domain = [], index = new Map();
 
-    while (++i < n) if (!index.has(key = (d = _[i]) + "")) index.set(key, domain.push(d));
+    for (const value of _) {
+      const key = value + "";
+      if (index.has(key)) continue;
+      index.set(key, domain.push(value));
+    }
 
     return scale;
   };
 
   scale.range = function (_) {
-    return arguments.length ? (range = _array.slice.call(_), scale) : range.slice();
+    return arguments.length ? (range = Array.from(_), scale) : range.slice();
   };
 
   scale.unknown = function (_) {
@@ -18924,7 +18911,7 @@ function ordinal() {
 
   return scale;
 }
-},{"d3-collection":"../../node_modules/d3-collection/src/index.js","./array":"../../node_modules/d3/node_modules/d3-scale/src/array.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js"}],"../../node_modules/d3/node_modules/d3-scale/src/band.js":[function(require,module,exports) {
+},{"./init.js":"../../node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-scale/src/band.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18935,9 +18922,9 @@ exports.point = point;
 
 var _d3Array = require("d3-array");
 
-var _init = require("./init");
+var _init = require("./init.js");
 
-var _ordinal = _interopRequireDefault(require("./ordinal"));
+var _ordinal = _interopRequireDefault(require("./ordinal.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -18945,7 +18932,8 @@ function band() {
   var scale = (0, _ordinal.default)().unknown(undefined),
       domain = scale.domain,
       ordinalRange = scale.range,
-      range = [0, 1],
+      r0 = 0,
+      r1 = 1,
       step,
       bandwidth,
       round = false,
@@ -18956,9 +18944,9 @@ function band() {
 
   function rescale() {
     var n = domain().length,
-        reverse = range[1] < range[0],
-        start = range[reverse - 0],
-        stop = range[1 - reverse];
+        reverse = r1 < r0,
+        start = reverse ? r1 : r0,
+        stop = reverse ? r0 : r1;
     step = (stop - start) / Math.max(1, n - paddingInner + paddingOuter * 2);
     if (round) step = Math.floor(step);
     start += (stop - start - step * (n - paddingInner)) * align;
@@ -18975,11 +18963,11 @@ function band() {
   };
 
   scale.range = function (_) {
-    return arguments.length ? (range = [+_[0], +_[1]], rescale()) : range.slice();
+    return arguments.length ? ([r0, r1] = _, r0 = +r0, r1 = +r1, rescale()) : [r0, r1];
   };
 
   scale.rangeRound = function (_) {
-    return range = [+_[0], +_[1]], round = true, rescale();
+    return [r0, r1] = _, r0 = +r0, r1 = +r1, round = true, rescale();
   };
 
   scale.bandwidth = function () {
@@ -19011,7 +18999,7 @@ function band() {
   };
 
   scale.copy = function () {
-    return band(domain(), range).round(round).paddingInner(paddingInner).paddingOuter(paddingOuter).align(align);
+    return band(domain(), [r0, r1]).round(round).paddingInner(paddingInner).paddingOuter(paddingOuter).align(align);
   };
 
   return _init.initRange.apply(rescale(), arguments);
@@ -19033,7 +19021,7 @@ function pointish(scale) {
 function point() {
   return pointish(band.apply(null, arguments).paddingInner(1));
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js","./ordinal":"../../node_modules/d3/node_modules/d3-scale/src/ordinal.js"}],"../../node_modules/d3/node_modules/d3-scale/src/constant.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","./init.js":"../../node_modules/d3-scale/src/init.js","./ordinal.js":"../../node_modules/d3-scale/src/ordinal.js"}],"../../node_modules/d3-scale/src/constant.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19046,7 +19034,7 @@ function _default(x) {
     return x;
   };
 }
-},{}],"../../node_modules/d3/node_modules/d3-scale/src/number.js":[function(require,module,exports) {
+},{}],"../../node_modules/d3-scale/src/number.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19057,7 +19045,7 @@ exports.default = _default;
 function _default(x) {
   return +x;
 }
-},{}],"../../node_modules/d3/node_modules/d3-scale/src/continuous.js":[function(require,module,exports) {
+},{}],"../../node_modules/d3-scale/src/continuous.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19072,11 +19060,9 @@ var _d3Array = require("d3-array");
 
 var _d3Interpolate = require("d3-interpolate");
 
-var _array = require("./array");
+var _constant = _interopRequireDefault(require("./constant.js"));
 
-var _constant = _interopRequireDefault(require("./constant"));
-
-var _number = _interopRequireDefault(require("./number"));
+var _number = _interopRequireDefault(require("./number.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -19092,10 +19078,8 @@ function normalize(a, b) {
   } : (0, _constant.default)(isNaN(b) ? NaN : 0.5);
 }
 
-function clamper(domain) {
-  var a = domain[0],
-      b = domain[domain.length - 1],
-      t;
+function clamper(a, b) {
+  var t;
   if (a > b) t = a, a = b, b = t;
   return function (x) {
     return Math.max(a, Math.min(b, x));
@@ -19154,7 +19138,9 @@ function transformer() {
       input;
 
   function rescale() {
-    piecewise = Math.min(domain.length, range.length) > 2 ? polymap : bimap;
+    var n = Math.min(domain.length, range.length);
+    if (clamp !== identity) clamp = clamper(domain[0], domain[n - 1]);
+    piecewise = n > 2 ? polymap : bimap;
     output = input = null;
     return scale;
   }
@@ -19168,19 +19154,19 @@ function transformer() {
   };
 
   scale.domain = function (_) {
-    return arguments.length ? (domain = _array.map.call(_, _number.default), clamp === identity || (clamp = clamper(domain)), rescale()) : domain.slice();
+    return arguments.length ? (domain = Array.from(_, _number.default), rescale()) : domain.slice();
   };
 
   scale.range = function (_) {
-    return arguments.length ? (range = _array.slice.call(_), rescale()) : range.slice();
+    return arguments.length ? (range = Array.from(_), rescale()) : range.slice();
   };
 
   scale.rangeRound = function (_) {
-    return range = _array.slice.call(_), interpolate = _d3Interpolate.interpolateRound, rescale();
+    return range = Array.from(_), interpolate = _d3Interpolate.interpolateRound, rescale();
   };
 
   scale.clamp = function (_) {
-    return arguments.length ? (clamp = _ ? clamper(domain) : identity, scale) : clamp !== identity;
+    return arguments.length ? (clamp = _ ? true : identity, rescale()) : clamp !== identity;
   };
 
   scale.interpolate = function (_) {
@@ -19197,10 +19183,10 @@ function transformer() {
   };
 }
 
-function continuous(transform, untransform) {
-  return transformer()(transform, untransform);
+function continuous() {
+  return transformer()(identity, identity);
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","d3-interpolate":"../../node_modules/d3-interpolate/src/index.js","./array":"../../node_modules/d3/node_modules/d3-scale/src/array.js","./constant":"../../node_modules/d3/node_modules/d3-scale/src/constant.js","./number":"../../node_modules/d3/node_modules/d3-scale/src/number.js"}],"../../node_modules/d3/node_modules/d3-scale/src/tickFormat.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","d3-interpolate":"../../node_modules/d3-interpolate/src/index.js","./constant.js":"../../node_modules/d3-scale/src/constant.js","./number.js":"../../node_modules/d3-scale/src/number.js"}],"../../node_modules/d3-scale/src/tickFormat.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19245,7 +19231,7 @@ function _default(start, stop, count, specifier) {
 
   return (0, _d3Format.format)(specifier);
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","d3-format":"../../node_modules/d3-format/src/index.js"}],"../../node_modules/d3/node_modules/d3-scale/src/linear.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","d3-format":"../../node_modules/d3-format/src/index.js"}],"../../node_modules/d3-scale/src/linear.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19256,11 +19242,11 @@ exports.default = linear;
 
 var _d3Array = require("d3-array");
 
-var _continuous = _interopRequireWildcard(require("./continuous"));
+var _continuous = _interopRequireWildcard(require("./continuous.js"));
 
-var _init = require("./init");
+var _init = require("./init.js");
 
-var _tickFormat = _interopRequireDefault(require("./tickFormat"));
+var _tickFormat = _interopRequireDefault(require("./tickFormat.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -19324,7 +19310,7 @@ function linearish(scale) {
 }
 
 function linear() {
-  var scale = (0, _continuous.default)(_continuous.identity, _continuous.identity);
+  var scale = (0, _continuous.default)();
 
   scale.copy = function () {
     return (0, _continuous.copy)(scale, linear());
@@ -19334,7 +19320,7 @@ function linear() {
 
   return linearish(scale);
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","./continuous":"../../node_modules/d3/node_modules/d3-scale/src/continuous.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js","./tickFormat":"../../node_modules/d3/node_modules/d3-scale/src/tickFormat.js"}],"../../node_modules/d3/node_modules/d3-scale/src/identity.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","./continuous.js":"../../node_modules/d3-scale/src/continuous.js","./init.js":"../../node_modules/d3-scale/src/init.js","./tickFormat.js":"../../node_modules/d3-scale/src/tickFormat.js"}],"../../node_modules/d3-scale/src/identity.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19342,11 +19328,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = identity;
 
-var _array = require("./array");
+var _linear = require("./linear.js");
 
-var _linear = require("./linear");
-
-var _number = _interopRequireDefault(require("./number"));
+var _number = _interopRequireDefault(require("./number.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -19360,7 +19344,7 @@ function identity(domain) {
   scale.invert = scale;
 
   scale.domain = scale.range = function (_) {
-    return arguments.length ? (domain = _array.map.call(_, _number.default), scale) : domain.slice();
+    return arguments.length ? (domain = Array.from(_, _number.default), scale) : domain.slice();
   };
 
   scale.unknown = function (_) {
@@ -19371,10 +19355,10 @@ function identity(domain) {
     return identity(domain).unknown(unknown);
   };
 
-  domain = arguments.length ? _array.map.call(domain, _number.default) : [0, 1];
+  domain = arguments.length ? Array.from(domain, _number.default) : [0, 1];
   return (0, _linear.linearish)(scale);
 }
-},{"./array":"../../node_modules/d3/node_modules/d3-scale/src/array.js","./linear":"../../node_modules/d3/node_modules/d3-scale/src/linear.js","./number":"../../node_modules/d3/node_modules/d3-scale/src/number.js"}],"../../node_modules/d3/node_modules/d3-scale/src/nice.js":[function(require,module,exports) {
+},{"./linear.js":"../../node_modules/d3-scale/src/linear.js","./number.js":"../../node_modules/d3-scale/src/number.js"}],"../../node_modules/d3-scale/src/nice.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19399,7 +19383,7 @@ function _default(domain, interval) {
   domain[i1] = interval.ceil(x1);
   return domain;
 }
-},{}],"../../node_modules/d3/node_modules/d3-scale/src/log.js":[function(require,module,exports) {
+},{}],"../../node_modules/d3-scale/src/log.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19412,11 +19396,11 @@ var _d3Array = require("d3-array");
 
 var _d3Format = require("d3-format");
 
-var _nice = _interopRequireDefault(require("./nice"));
+var _nice = _interopRequireDefault(require("./nice.js"));
 
-var _continuous = require("./continuous");
+var _continuous = require("./continuous.js");
 
-var _init = require("./init");
+var _init = require("./init.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -19501,15 +19485,15 @@ function loggish(transform) {
         z = [];
 
     if (!(base % 1) && j - i < n) {
-      i = Math.round(i) - 1, j = Math.round(j) + 1;
-      if (u > 0) for (; i < j; ++i) {
+      i = Math.floor(i), j = Math.ceil(j);
+      if (u > 0) for (; i <= j; ++i) {
         for (k = 1, p = pows(i); k < base; ++k) {
           t = p * k;
           if (t < u) continue;
           if (t > v) break;
           z.push(t);
         }
-      } else for (; i < j; ++i) {
+      } else for (; i <= j; ++i) {
         for (k = base - 1, p = pows(i); k >= 1; --k) {
           t = p * k;
           if (t < u) continue;
@@ -19517,6 +19501,7 @@ function loggish(transform) {
           z.push(t);
         }
       }
+      if (z.length * 2 < n) z = (0, _d3Array.ticks)(u, v, n);
     } else {
       z = (0, _d3Array.ticks)(i, j, Math.min(j - i, n)).map(pows);
     }
@@ -19563,7 +19548,7 @@ function log() {
 
   return scale;
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","d3-format":"../../node_modules/d3-format/src/index.js","./nice":"../../node_modules/d3/node_modules/d3-scale/src/nice.js","./continuous":"../../node_modules/d3/node_modules/d3-scale/src/continuous.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js"}],"../../node_modules/d3/node_modules/d3-scale/src/symlog.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","d3-format":"../../node_modules/d3-format/src/index.js","./nice.js":"../../node_modules/d3-scale/src/nice.js","./continuous.js":"../../node_modules/d3-scale/src/continuous.js","./init.js":"../../node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-scale/src/symlog.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19572,11 +19557,11 @@ Object.defineProperty(exports, "__esModule", {
 exports.symlogish = symlogish;
 exports.default = symlog;
 
-var _linear = require("./linear");
+var _linear = require("./linear.js");
 
-var _continuous = require("./continuous");
+var _continuous = require("./continuous.js");
 
-var _init = require("./init");
+var _init = require("./init.js");
 
 function transformSymlog(c) {
   return function (x) {
@@ -19610,7 +19595,7 @@ function symlog() {
 
   return _init.initRange.apply(scale, arguments);
 }
-},{"./linear":"../../node_modules/d3/node_modules/d3-scale/src/linear.js","./continuous":"../../node_modules/d3/node_modules/d3-scale/src/continuous.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js"}],"../../node_modules/d3/node_modules/d3-scale/src/pow.js":[function(require,module,exports) {
+},{"./linear.js":"../../node_modules/d3-scale/src/linear.js","./continuous.js":"../../node_modules/d3-scale/src/continuous.js","./init.js":"../../node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-scale/src/pow.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19620,11 +19605,11 @@ exports.powish = powish;
 exports.default = pow;
 exports.sqrt = sqrt;
 
-var _linear = require("./linear");
+var _linear = require("./linear.js");
 
-var _continuous = require("./continuous");
+var _continuous = require("./continuous.js");
 
-var _init = require("./init");
+var _init = require("./init.js");
 
 function transformPow(exponent) {
   return function (x) {
@@ -19670,7 +19655,80 @@ function pow() {
 function sqrt() {
   return pow.apply(null, arguments).exponent(0.5);
 }
-},{"./linear":"../../node_modules/d3/node_modules/d3-scale/src/linear.js","./continuous":"../../node_modules/d3/node_modules/d3-scale/src/continuous.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js"}],"../../node_modules/d3/node_modules/d3-scale/src/quantile.js":[function(require,module,exports) {
+},{"./linear.js":"../../node_modules/d3-scale/src/linear.js","./continuous.js":"../../node_modules/d3-scale/src/continuous.js","./init.js":"../../node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-scale/src/radial.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = radial;
+
+var _continuous = _interopRequireDefault(require("./continuous.js"));
+
+var _init = require("./init.js");
+
+var _linear = require("./linear.js");
+
+var _number = _interopRequireDefault(require("./number.js"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function square(x) {
+  return Math.sign(x) * x * x;
+}
+
+function unsquare(x) {
+  return Math.sign(x) * Math.sqrt(Math.abs(x));
+}
+
+function radial() {
+  var squared = (0, _continuous.default)(),
+      range = [0, 1],
+      round = false,
+      unknown;
+
+  function scale(x) {
+    var y = unsquare(squared(x));
+    return isNaN(y) ? unknown : round ? Math.round(y) : y;
+  }
+
+  scale.invert = function (y) {
+    return squared.invert(square(y));
+  };
+
+  scale.domain = function (_) {
+    return arguments.length ? (squared.domain(_), scale) : squared.domain();
+  };
+
+  scale.range = function (_) {
+    return arguments.length ? (squared.range((range = Array.from(_, _number.default)).map(square)), scale) : range.slice();
+  };
+
+  scale.rangeRound = function (_) {
+    return scale.range(_).round(true);
+  };
+
+  scale.round = function (_) {
+    return arguments.length ? (round = !!_, scale) : round;
+  };
+
+  scale.clamp = function (_) {
+    return arguments.length ? (squared.clamp(_), scale) : squared.clamp();
+  };
+
+  scale.unknown = function (_) {
+    return arguments.length ? (unknown = _, scale) : unknown;
+  };
+
+  scale.copy = function () {
+    return radial(squared.domain(), range).round(round).clamp(squared.clamp()).unknown(unknown);
+  };
+
+  _init.initRange.apply(scale, arguments);
+
+  return (0, _linear.linearish)(scale);
+}
+},{"./continuous.js":"../../node_modules/d3-scale/src/continuous.js","./init.js":"../../node_modules/d3-scale/src/init.js","./linear.js":"../../node_modules/d3-scale/src/linear.js","./number.js":"../../node_modules/d3-scale/src/number.js"}],"../../node_modules/d3-scale/src/quantile.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19680,9 +19738,7 @@ exports.default = quantile;
 
 var _d3Array = require("d3-array");
 
-var _array = require("./array");
-
-var _init = require("./init");
+var _init = require("./init.js");
 
 function quantile() {
   var domain = [],
@@ -19713,14 +19769,14 @@ function quantile() {
     if (!arguments.length) return domain.slice();
     domain = [];
 
-    for (var i = 0, n = _.length, d; i < n; ++i) if (d = _[i], d != null && !isNaN(d = +d)) domain.push(d);
+    for (let d of _) if (d != null && !isNaN(d = +d)) domain.push(d);
 
     domain.sort(_d3Array.ascending);
     return rescale();
   };
 
   scale.range = function (_) {
-    return arguments.length ? (range = _array.slice.call(_), rescale()) : range.slice();
+    return arguments.length ? (range = Array.from(_), rescale()) : range.slice();
   };
 
   scale.unknown = function (_) {
@@ -19737,7 +19793,7 @@ function quantile() {
 
   return _init.initRange.apply(scale, arguments);
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","./array":"../../node_modules/d3/node_modules/d3-scale/src/array.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js"}],"../../node_modules/d3/node_modules/d3-scale/src/quantize.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","./init.js":"../../node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-scale/src/quantize.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19747,11 +19803,9 @@ exports.default = quantize;
 
 var _d3Array = require("d3-array");
 
-var _array = require("./array");
+var _linear = require("./linear.js");
 
-var _linear = require("./linear");
-
-var _init = require("./init");
+var _init = require("./init.js");
 
 function quantize() {
   var x0 = 0,
@@ -19775,11 +19829,11 @@ function quantize() {
   }
 
   scale.domain = function (_) {
-    return arguments.length ? (x0 = +_[0], x1 = +_[1], rescale()) : [x0, x1];
+    return arguments.length ? ([x0, x1] = _, x0 = +x0, x1 = +x1, rescale()) : [x0, x1];
   };
 
   scale.range = function (_) {
-    return arguments.length ? (n = (range = _array.slice.call(_)).length - 1, rescale()) : range.slice();
+    return arguments.length ? (n = (range = Array.from(_)).length - 1, rescale()) : range.slice();
   };
 
   scale.invertExtent = function (y) {
@@ -19801,7 +19855,7 @@ function quantize() {
 
   return _init.initRange.apply((0, _linear.linearish)(scale), arguments);
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","./array":"../../node_modules/d3/node_modules/d3-scale/src/array.js","./linear":"../../node_modules/d3/node_modules/d3-scale/src/linear.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js"}],"../../node_modules/d3/node_modules/d3-scale/src/threshold.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","./linear.js":"../../node_modules/d3-scale/src/linear.js","./init.js":"../../node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-scale/src/threshold.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -19811,9 +19865,7 @@ exports.default = threshold;
 
 var _d3Array = require("d3-array");
 
-var _array = require("./array");
-
-var _init = require("./init");
+var _init = require("./init.js");
 
 function threshold() {
   var domain = [0.5],
@@ -19826,11 +19878,11 @@ function threshold() {
   }
 
   scale.domain = function (_) {
-    return arguments.length ? (domain = _array.slice.call(_), n = Math.min(domain.length, range.length - 1), scale) : domain.slice();
+    return arguments.length ? (domain = Array.from(_), n = Math.min(domain.length, range.length - 1), scale) : domain.slice();
   };
 
   scale.range = function (_) {
-    return arguments.length ? (range = _array.slice.call(_), n = Math.min(domain.length, range.length - 1), scale) : range.slice();
+    return arguments.length ? (range = Array.from(_), n = Math.min(domain.length, range.length - 1), scale) : range.slice();
   };
 
   scale.invertExtent = function (y) {
@@ -19848,7 +19900,7 @@ function threshold() {
 
   return _init.initRange.apply(scale, arguments);
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","./array":"../../node_modules/d3/node_modules/d3-scale/src/array.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-time/src/interval.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","./init.js":"../../node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-time/src/interval.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -21643,7 +21695,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
-},{"./defaultLocale.js":"../../node_modules/d3-time-format/src/defaultLocale.js","./locale.js":"../../node_modules/d3-time-format/src/locale.js","./isoFormat.js":"../../node_modules/d3-time-format/src/isoFormat.js","./isoParse.js":"../../node_modules/d3-time-format/src/isoParse.js"}],"../../node_modules/d3/node_modules/d3-scale/src/time.js":[function(require,module,exports) {
+},{"./defaultLocale.js":"../../node_modules/d3-time-format/src/defaultLocale.js","./locale.js":"../../node_modules/d3-time-format/src/locale.js","./isoFormat.js":"../../node_modules/d3-time-format/src/isoFormat.js","./isoParse.js":"../../node_modules/d3-time-format/src/isoParse.js"}],"../../node_modules/d3-scale/src/time.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -21658,13 +21710,11 @@ var _d3Time = require("d3-time");
 
 var _d3TimeFormat = require("d3-time-format");
 
-var _array = require("./array");
+var _continuous = _interopRequireWildcard(require("./continuous.js"));
 
-var _continuous = _interopRequireWildcard(require("./continuous"));
+var _init = require("./init.js");
 
-var _init = require("./init");
-
-var _nice = _interopRequireDefault(require("./nice"));
+var _nice = _interopRequireDefault(require("./nice.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -21689,7 +21739,7 @@ function number(t) {
 }
 
 function calendar(year, month, week, day, hour, minute, second, millisecond, format) {
-  var scale = (0, _continuous.default)(_continuous.identity, _continuous.identity),
+  var scale = (0, _continuous.default)(),
       invert = scale.invert,
       domain = scale.domain;
   var formatMillisecond = format(".%L"),
@@ -21706,7 +21756,7 @@ function calendar(year, month, week, day, hour, minute, second, millisecond, for
     return (second(date) < date ? formatMillisecond : minute(date) < date ? formatSecond : hour(date) < date ? formatMinute : day(date) < date ? formatHour : month(date) < date ? week(date) < date ? formatDay : formatWeek : year(date) < date ? formatMonth : formatYear)(date);
   }
 
-  function tickInterval(interval, start, stop, step) {
+  function tickInterval(interval, start, stop) {
     if (interval == null) interval = 10; // If a desired tick count is specified, pick a reasonable tick interval
     // based on the extent of the domain and a rough estimate of tick size.
     // Otherwise, assume interval is already a time interval and use it.
@@ -21715,7 +21765,8 @@ function calendar(year, month, week, day, hour, minute, second, millisecond, for
       var target = Math.abs(stop - start) / interval,
           i = (0, _d3Array.bisector)(function (i) {
         return i[2];
-      }).right(tickIntervals, target);
+      }).right(tickIntervals, target),
+          step;
 
       if (i === tickIntervals.length) {
         step = (0, _d3Array.tickStep)(start / durationYear, stop / durationYear, interval);
@@ -21728,9 +21779,11 @@ function calendar(year, month, week, day, hour, minute, second, millisecond, for
         step = Math.max((0, _d3Array.tickStep)(start, stop, interval), 1);
         interval = millisecond;
       }
+
+      return interval.every(step);
     }
 
-    return step == null ? interval : interval.every(step);
+    return interval;
   }
 
   scale.invert = function (y) {
@@ -21738,17 +21791,17 @@ function calendar(year, month, week, day, hour, minute, second, millisecond, for
   };
 
   scale.domain = function (_) {
-    return arguments.length ? domain(_array.map.call(_, number)) : domain().map(date);
+    return arguments.length ? domain(Array.from(_, number)) : domain().map(date);
   };
 
-  scale.ticks = function (interval, step) {
+  scale.ticks = function (interval) {
     var d = domain(),
         t0 = d[0],
         t1 = d[d.length - 1],
         r = t1 < t0,
         t;
     if (r) t = t0, t0 = t1, t1 = t;
-    t = tickInterval(interval, t0, t1, step);
+    t = tickInterval(interval, t0, t1);
     t = t ? t.range(t0, t1 + 1) : []; // inclusive stop
 
     return r ? t.reverse() : t;
@@ -21758,9 +21811,9 @@ function calendar(year, month, week, day, hour, minute, second, millisecond, for
     return specifier == null ? tickFormat : format(specifier);
   };
 
-  scale.nice = function (interval, step) {
+  scale.nice = function (interval) {
     var d = domain();
-    return (interval = tickInterval(interval, d[0], d[d.length - 1], step)) ? domain((0, _nice.default)(d, interval)) : scale;
+    return (interval = tickInterval(interval, d[0], d[d.length - 1])) ? domain((0, _nice.default)(d, interval)) : scale;
   };
 
   scale.copy = function () {
@@ -21773,7 +21826,7 @@ function calendar(year, month, week, day, hour, minute, second, millisecond, for
 function _default() {
   return _init.initRange.apply(calendar(_d3Time.timeYear, _d3Time.timeMonth, _d3Time.timeWeek, _d3Time.timeDay, _d3Time.timeHour, _d3Time.timeMinute, _d3Time.timeSecond, _d3Time.timeMillisecond, _d3TimeFormat.timeFormat).domain([new Date(2000, 0, 1), new Date(2000, 0, 2)]), arguments);
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","d3-time":"../../node_modules/d3-time/src/index.js","d3-time-format":"../../node_modules/d3-time-format/src/index.js","./array":"../../node_modules/d3/node_modules/d3-scale/src/array.js","./continuous":"../../node_modules/d3/node_modules/d3-scale/src/continuous.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js","./nice":"../../node_modules/d3/node_modules/d3-scale/src/nice.js"}],"../../node_modules/d3/node_modules/d3-scale/src/utcTime.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","d3-time":"../../node_modules/d3-time/src/index.js","d3-time-format":"../../node_modules/d3-time-format/src/index.js","./continuous.js":"../../node_modules/d3-scale/src/continuous.js","./init.js":"../../node_modules/d3-scale/src/init.js","./nice.js":"../../node_modules/d3-scale/src/nice.js"}],"../../node_modules/d3-scale/src/utcTime.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -21781,18 +21834,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = _default;
 
-var _time = require("./time");
+var _time = require("./time.js");
 
 var _d3TimeFormat = require("d3-time-format");
 
 var _d3Time = require("d3-time");
 
-var _init = require("./init");
+var _init = require("./init.js");
 
 function _default() {
   return _init.initRange.apply((0, _time.calendar)(_d3Time.utcYear, _d3Time.utcMonth, _d3Time.utcWeek, _d3Time.utcDay, _d3Time.utcHour, _d3Time.utcMinute, _d3Time.utcSecond, _d3Time.utcMillisecond, _d3TimeFormat.utcFormat).domain([Date.UTC(2000, 0, 1), Date.UTC(2000, 0, 2)]), arguments);
 }
-},{"./time":"../../node_modules/d3/node_modules/d3-scale/src/time.js","d3-time-format":"../../node_modules/d3-time-format/src/index.js","d3-time":"../../node_modules/d3-time/src/index.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js"}],"../../node_modules/d3/node_modules/d3-scale/src/sequential.js":[function(require,module,exports) {
+},{"./time.js":"../../node_modules/d3-scale/src/time.js","d3-time-format":"../../node_modules/d3-time-format/src/index.js","d3-time":"../../node_modules/d3-time/src/index.js","./init.js":"../../node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-scale/src/sequential.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -21805,17 +21858,19 @@ exports.sequentialSymlog = sequentialSymlog;
 exports.sequentialPow = sequentialPow;
 exports.sequentialSqrt = sequentialSqrt;
 
-var _continuous = require("./continuous");
+var _d3Interpolate = require("d3-interpolate");
 
-var _init = require("./init");
+var _continuous = require("./continuous.js");
 
-var _linear = require("./linear");
+var _init = require("./init.js");
 
-var _log = require("./log");
+var _linear = require("./linear.js");
 
-var _symlog = require("./symlog");
+var _log = require("./log.js");
 
-var _pow = require("./pow");
+var _symlog = require("./symlog.js");
+
+var _pow = require("./pow.js");
 
 function transformer() {
   var x0 = 0,
@@ -21833,7 +21888,7 @@ function transformer() {
   }
 
   scale.domain = function (_) {
-    return arguments.length ? (t0 = transform(x0 = +_[0]), t1 = transform(x1 = +_[1]), k10 = t0 === t1 ? 0 : 1 / (t1 - t0), scale) : [x0, x1];
+    return arguments.length ? ([x0, x1] = _, t0 = transform(x0 = +x0), t1 = transform(x1 = +x1), k10 = t0 === t1 ? 0 : 1 / (t1 - t0), scale) : [x0, x1];
   };
 
   scale.clamp = function (_) {
@@ -21843,6 +21898,16 @@ function transformer() {
   scale.interpolator = function (_) {
     return arguments.length ? (interpolator = _, scale) : interpolator;
   };
+
+  function range(interpolate) {
+    return function (_) {
+      var r0, r1;
+      return arguments.length ? ([r0, r1] = _, interpolator = interpolate(r0, r1), scale) : [interpolator(0), interpolator(1)];
+    };
+  }
+
+  scale.range = range(_d3Interpolate.interpolate);
+  scale.rangeRound = range(_d3Interpolate.interpolateRound);
 
   scale.unknown = function (_) {
     return arguments.length ? (unknown = _, scale) : unknown;
@@ -21901,7 +21966,7 @@ function sequentialPow() {
 function sequentialSqrt() {
   return sequentialPow.apply(null, arguments).exponent(0.5);
 }
-},{"./continuous":"../../node_modules/d3/node_modules/d3-scale/src/continuous.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js","./linear":"../../node_modules/d3/node_modules/d3-scale/src/linear.js","./log":"../../node_modules/d3/node_modules/d3-scale/src/log.js","./symlog":"../../node_modules/d3/node_modules/d3-scale/src/symlog.js","./pow":"../../node_modules/d3/node_modules/d3-scale/src/pow.js"}],"../../node_modules/d3/node_modules/d3-scale/src/sequentialQuantile.js":[function(require,module,exports) {
+},{"d3-interpolate":"../../node_modules/d3-interpolate/src/index.js","./continuous.js":"../../node_modules/d3-scale/src/continuous.js","./init.js":"../../node_modules/d3-scale/src/init.js","./linear.js":"../../node_modules/d3-scale/src/linear.js","./log.js":"../../node_modules/d3-scale/src/log.js","./symlog.js":"../../node_modules/d3-scale/src/symlog.js","./pow.js":"../../node_modules/d3-scale/src/pow.js"}],"../../node_modules/d3-scale/src/sequentialQuantile.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -21911,23 +21976,23 @@ exports.default = sequentialQuantile;
 
 var _d3Array = require("d3-array");
 
-var _continuous = require("./continuous");
+var _continuous = require("./continuous.js");
 
-var _init = require("./init");
+var _init = require("./init.js");
 
 function sequentialQuantile() {
   var domain = [],
       interpolator = _continuous.identity;
 
   function scale(x) {
-    if (!isNaN(x = +x)) return interpolator(((0, _d3Array.bisect)(domain, x) - 1) / (domain.length - 1));
+    if (!isNaN(x = +x)) return interpolator(((0, _d3Array.bisect)(domain, x, 1) - 1) / (domain.length - 1));
   }
 
   scale.domain = function (_) {
     if (!arguments.length) return domain.slice();
     domain = [];
 
-    for (var i = 0, n = _.length, d; i < n; ++i) if (d = _[i], d != null && !isNaN(d = +d)) domain.push(d);
+    for (let d of _) if (d != null && !isNaN(d = +d)) domain.push(d);
 
     domain.sort(_d3Array.ascending);
     return scale;
@@ -21937,13 +22002,23 @@ function sequentialQuantile() {
     return arguments.length ? (interpolator = _, scale) : interpolator;
   };
 
+  scale.range = function () {
+    return domain.map((d, i) => interpolator(i / (domain.length - 1)));
+  };
+
+  scale.quantiles = function (n) {
+    return Array.from({
+      length: n + 1
+    }, (_, i) => (0, _d3Array.quantile)(domain, i / n));
+  };
+
   scale.copy = function () {
     return sequentialQuantile(interpolator).domain(domain);
   };
 
   return _init.initInterpolator.apply(scale, arguments);
 }
-},{"d3-array":"../../node_modules/d3-array/src/index.js","./continuous":"../../node_modules/d3/node_modules/d3-scale/src/continuous.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js"}],"../../node_modules/d3/node_modules/d3-scale/src/diverging.js":[function(require,module,exports) {
+},{"d3-array":"../../node_modules/d3-array/src/index.js","./continuous.js":"../../node_modules/d3-scale/src/continuous.js","./init.js":"../../node_modules/d3-scale/src/init.js"}],"../../node_modules/d3-scale/src/diverging.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -21955,24 +22030,27 @@ exports.divergingSymlog = divergingSymlog;
 exports.divergingPow = divergingPow;
 exports.divergingSqrt = divergingSqrt;
 
-var _continuous = require("./continuous");
+var _d3Interpolate = require("d3-interpolate");
 
-var _init = require("./init");
+var _continuous = require("./continuous.js");
 
-var _linear = require("./linear");
+var _init = require("./init.js");
 
-var _log = require("./log");
+var _linear = require("./linear.js");
 
-var _sequential = require("./sequential");
+var _log = require("./log.js");
 
-var _symlog = require("./symlog");
+var _sequential = require("./sequential.js");
 
-var _pow = require("./pow");
+var _symlog = require("./symlog.js");
+
+var _pow = require("./pow.js");
 
 function transformer() {
   var x0 = 0,
       x1 = 0.5,
       x2 = 1,
+      s = 1,
       t0,
       t1,
       t2,
@@ -21984,11 +22062,11 @@ function transformer() {
       unknown;
 
   function scale(x) {
-    return isNaN(x = +x) ? unknown : (x = 0.5 + ((x = +transform(x)) - t1) * (x < t1 ? k10 : k21), interpolator(clamp ? Math.max(0, Math.min(1, x)) : x));
+    return isNaN(x = +x) ? unknown : (x = 0.5 + ((x = +transform(x)) - t1) * (s * x < s * t1 ? k10 : k21), interpolator(clamp ? Math.max(0, Math.min(1, x)) : x));
   }
 
   scale.domain = function (_) {
-    return arguments.length ? (t0 = transform(x0 = +_[0]), t1 = transform(x1 = +_[1]), t2 = transform(x2 = +_[2]), k10 = t0 === t1 ? 0 : 0.5 / (t1 - t0), k21 = t1 === t2 ? 0 : 0.5 / (t2 - t1), scale) : [x0, x1, x2];
+    return arguments.length ? ([x0, x1, x2] = _, t0 = transform(x0 = +x0), t1 = transform(x1 = +x1), t2 = transform(x2 = +x2), k10 = t0 === t1 ? 0 : 0.5 / (t1 - t0), k21 = t1 === t2 ? 0 : 0.5 / (t2 - t1), s = t1 < t0 ? -1 : 1, scale) : [x0, x1, x2];
   };
 
   scale.clamp = function (_) {
@@ -21999,12 +22077,22 @@ function transformer() {
     return arguments.length ? (interpolator = _, scale) : interpolator;
   };
 
+  function range(interpolate) {
+    return function (_) {
+      var r0, r1, r2;
+      return arguments.length ? ([r0, r1, r2] = _, interpolator = (0, _d3Interpolate.piecewise)(interpolate, [r0, r1, r2]), scale) : [interpolator(0), interpolator(0.5), interpolator(1)];
+    };
+  }
+
+  scale.range = range(_d3Interpolate.interpolate);
+  scale.rangeRound = range(_d3Interpolate.interpolateRound);
+
   scale.unknown = function (_) {
     return arguments.length ? (unknown = _, scale) : unknown;
   };
 
   return function (t) {
-    transform = t, t0 = t(x0), t1 = t(x1), t2 = t(x2), k10 = t0 === t1 ? 0 : 0.5 / (t1 - t0), k21 = t1 === t2 ? 0 : 0.5 / (t2 - t1);
+    transform = t, t0 = t(x0), t1 = t(x1), t2 = t(x2), k10 = t0 === t1 ? 0 : 0.5 / (t1 - t0), k21 = t1 === t2 ? 0 : 0.5 / (t2 - t1), s = t1 < t0 ? -1 : 1;
     return scale;
   };
 }
@@ -22052,7 +22140,7 @@ function divergingPow() {
 function divergingSqrt() {
   return divergingPow.apply(null, arguments).exponent(0.5);
 }
-},{"./continuous":"../../node_modules/d3/node_modules/d3-scale/src/continuous.js","./init":"../../node_modules/d3/node_modules/d3-scale/src/init.js","./linear":"../../node_modules/d3/node_modules/d3-scale/src/linear.js","./log":"../../node_modules/d3/node_modules/d3-scale/src/log.js","./sequential":"../../node_modules/d3/node_modules/d3-scale/src/sequential.js","./symlog":"../../node_modules/d3/node_modules/d3-scale/src/symlog.js","./pow":"../../node_modules/d3/node_modules/d3-scale/src/pow.js"}],"../../node_modules/d3/node_modules/d3-scale/src/index.js":[function(require,module,exports) {
+},{"d3-interpolate":"../../node_modules/d3-interpolate/src/index.js","./continuous.js":"../../node_modules/d3-scale/src/continuous.js","./init.js":"../../node_modules/d3-scale/src/init.js","./linear.js":"../../node_modules/d3-scale/src/linear.js","./log.js":"../../node_modules/d3-scale/src/log.js","./sequential.js":"../../node_modules/d3-scale/src/sequential.js","./symlog.js":"../../node_modules/d3-scale/src/symlog.js","./pow.js":"../../node_modules/d3-scale/src/pow.js"}],"../../node_modules/d3-scale/src/index.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -22116,6 +22204,12 @@ Object.defineProperty(exports, "scaleSqrt", {
   enumerable: true,
   get: function () {
     return _pow.sqrt;
+  }
+});
+Object.defineProperty(exports, "scaleRadial", {
+  enumerable: true,
+  get: function () {
+    return _radial.default;
   }
 });
 Object.defineProperty(exports, "scaleQuantile", {
@@ -22221,44 +22315,46 @@ Object.defineProperty(exports, "tickFormat", {
   }
 });
 
-var _band = _interopRequireWildcard(require("./band"));
+var _band = _interopRequireWildcard(require("./band.js"));
 
-var _identity = _interopRequireDefault(require("./identity"));
+var _identity = _interopRequireDefault(require("./identity.js"));
 
-var _linear = _interopRequireDefault(require("./linear"));
+var _linear = _interopRequireDefault(require("./linear.js"));
 
-var _log = _interopRequireDefault(require("./log"));
+var _log = _interopRequireDefault(require("./log.js"));
 
-var _symlog = _interopRequireDefault(require("./symlog"));
+var _symlog = _interopRequireDefault(require("./symlog.js"));
 
-var _ordinal = _interopRequireWildcard(require("./ordinal"));
+var _ordinal = _interopRequireWildcard(require("./ordinal.js"));
 
-var _pow = _interopRequireWildcard(require("./pow"));
+var _pow = _interopRequireWildcard(require("./pow.js"));
 
-var _quantile = _interopRequireDefault(require("./quantile"));
+var _radial = _interopRequireDefault(require("./radial.js"));
 
-var _quantize = _interopRequireDefault(require("./quantize"));
+var _quantile = _interopRequireDefault(require("./quantile.js"));
 
-var _threshold = _interopRequireDefault(require("./threshold"));
+var _quantize = _interopRequireDefault(require("./quantize.js"));
 
-var _time = _interopRequireDefault(require("./time"));
+var _threshold = _interopRequireDefault(require("./threshold.js"));
 
-var _utcTime = _interopRequireDefault(require("./utcTime"));
+var _time = _interopRequireDefault(require("./time.js"));
 
-var _sequential = _interopRequireWildcard(require("./sequential"));
+var _utcTime = _interopRequireDefault(require("./utcTime.js"));
 
-var _sequentialQuantile = _interopRequireDefault(require("./sequentialQuantile"));
+var _sequential = _interopRequireWildcard(require("./sequential.js"));
 
-var _diverging = _interopRequireWildcard(require("./diverging"));
+var _sequentialQuantile = _interopRequireDefault(require("./sequentialQuantile.js"));
 
-var _tickFormat = _interopRequireDefault(require("./tickFormat"));
+var _diverging = _interopRequireWildcard(require("./diverging.js"));
+
+var _tickFormat = _interopRequireDefault(require("./tickFormat.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
-},{"./band":"../../node_modules/d3/node_modules/d3-scale/src/band.js","./identity":"../../node_modules/d3/node_modules/d3-scale/src/identity.js","./linear":"../../node_modules/d3/node_modules/d3-scale/src/linear.js","./log":"../../node_modules/d3/node_modules/d3-scale/src/log.js","./symlog":"../../node_modules/d3/node_modules/d3-scale/src/symlog.js","./ordinal":"../../node_modules/d3/node_modules/d3-scale/src/ordinal.js","./pow":"../../node_modules/d3/node_modules/d3-scale/src/pow.js","./quantile":"../../node_modules/d3/node_modules/d3-scale/src/quantile.js","./quantize":"../../node_modules/d3/node_modules/d3-scale/src/quantize.js","./threshold":"../../node_modules/d3/node_modules/d3-scale/src/threshold.js","./time":"../../node_modules/d3/node_modules/d3-scale/src/time.js","./utcTime":"../../node_modules/d3/node_modules/d3-scale/src/utcTime.js","./sequential":"../../node_modules/d3/node_modules/d3-scale/src/sequential.js","./sequentialQuantile":"../../node_modules/d3/node_modules/d3-scale/src/sequentialQuantile.js","./diverging":"../../node_modules/d3/node_modules/d3-scale/src/diverging.js","./tickFormat":"../../node_modules/d3/node_modules/d3-scale/src/tickFormat.js"}],"../../node_modules/d3-scale-chromatic/src/colors.js":[function(require,module,exports) {
+},{"./band.js":"../../node_modules/d3-scale/src/band.js","./identity.js":"../../node_modules/d3-scale/src/identity.js","./linear.js":"../../node_modules/d3-scale/src/linear.js","./log.js":"../../node_modules/d3-scale/src/log.js","./symlog.js":"../../node_modules/d3-scale/src/symlog.js","./ordinal.js":"../../node_modules/d3-scale/src/ordinal.js","./pow.js":"../../node_modules/d3-scale/src/pow.js","./radial.js":"../../node_modules/d3-scale/src/radial.js","./quantile.js":"../../node_modules/d3-scale/src/quantile.js","./quantize.js":"../../node_modules/d3-scale/src/quantize.js","./threshold.js":"../../node_modules/d3-scale/src/threshold.js","./time.js":"../../node_modules/d3-scale/src/time.js","./utcTime.js":"../../node_modules/d3-scale/src/utcTime.js","./sequential.js":"../../node_modules/d3-scale/src/sequential.js","./sequentialQuantile.js":"../../node_modules/d3-scale/src/sequentialQuantile.js","./diverging.js":"../../node_modules/d3-scale/src/diverging.js","./tickFormat.js":"../../node_modules/d3-scale/src/tickFormat.js"}],"../../node_modules/d3-scale-chromatic/src/colors.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28884,547 +28980,111 @@ Object.keys(_d3Zoom).forEach(function (key) {
     }
   });
 });
-},{"./dist/package.js":"../../node_modules/d3/dist/package.js","d3-array":"../../node_modules/d3-array/src/index.js","d3-axis":"../../node_modules/d3-axis/src/index.js","d3-brush":"../../node_modules/d3-brush/src/index.js","d3-chord":"../../node_modules/d3-chord/src/index.js","d3-collection":"../../node_modules/d3-collection/src/index.js","d3-color":"../../node_modules/d3-color/src/index.js","d3-contour":"../../node_modules/d3-contour/src/index.js","d3-dispatch":"../../node_modules/d3-dispatch/src/index.js","d3-drag":"../../node_modules/d3-drag/src/index.js","d3-dsv":"../../node_modules/d3-dsv/src/index.js","d3-ease":"../../node_modules/d3-ease/src/index.js","d3-fetch":"../../node_modules/d3-fetch/src/index.js","d3-force":"../../node_modules/d3-force/src/index.js","d3-format":"../../node_modules/d3-format/src/index.js","d3-geo":"../../node_modules/d3-geo/src/index.js","d3-hierarchy":"../../node_modules/d3-hierarchy/src/index.js","d3-interpolate":"../../node_modules/d3-interpolate/src/index.js","d3-path":"../../node_modules/d3-path/src/index.js","d3-polygon":"../../node_modules/d3-polygon/src/index.js","d3-quadtree":"../../node_modules/d3-quadtree/src/index.js","d3-random":"../../node_modules/d3-random/src/index.js","d3-scale":"../../node_modules/d3/node_modules/d3-scale/src/index.js","d3-scale-chromatic":"../../node_modules/d3-scale-chromatic/src/index.js","d3-selection":"../../node_modules/d3-selection/src/index.js","d3-shape":"../../node_modules/d3-shape/src/index.js","d3-time":"../../node_modules/d3-time/src/index.js","d3-time-format":"../../node_modules/d3-time-format/src/index.js","d3-timer":"../../node_modules/d3-timer/src/index.js","d3-transition":"../../node_modules/d3-transition/src/index.js","d3-voronoi":"../../node_modules/d3-voronoi/src/index.js","d3-zoom":"../../node_modules/d3-zoom/src/index.js"}],"../../node_modules/d3-tip/index.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = _default;
-
-var _d3Collection = require("d3-collection");
-
-var _d3Selection = require("d3-selection");
-
-/**
- * d3.tip
- * Copyright (c) 2013-2017 Justin Palmer
- *
- * Tooltips for d3.js SVG visualizations
- */
-// eslint-disable-next-line no-extra-semi
-// Public - constructs a new tooltip
-//
-// Returns a tip
-function _default() {
-  var direction = d3TipDirection,
-      offset = d3TipOffset,
-      html = d3TipHTML,
-      rootElement = document.body,
-      node = initNode(),
-      svg = null,
-      point = null,
-      target = null;
-
-  function tip(vis) {
-    svg = getSVGNode(vis);
-    if (!svg) return;
-    point = svg.createSVGPoint();
-    rootElement.appendChild(node);
-  } // Public - show the tooltip on the screen
-  //
-  // Returns a tip
-
-
-  tip.show = function () {
-    var args = Array.prototype.slice.call(arguments);
-    if (args[args.length - 1] instanceof SVGElement) target = args.pop();
-    var content = html.apply(this, args),
-        poffset = offset.apply(this, args),
-        dir = direction.apply(this, args),
-        nodel = getNodeEl(),
-        i = directions.length,
-        coords,
-        scrollTop = document.documentElement.scrollTop || rootElement.scrollTop,
-        scrollLeft = document.documentElement.scrollLeft || rootElement.scrollLeft;
-    nodel.html(content).style('opacity', 1).style('pointer-events', 'all');
-
-    while (i--) nodel.classed(directions[i], false);
-
-    coords = directionCallbacks.get(dir).apply(this);
-    nodel.classed(dir, true).style('top', coords.top + poffset[0] + scrollTop + 'px').style('left', coords.left + poffset[1] + scrollLeft + 'px');
-    return tip;
-  }; // Public - hide the tooltip
-  //
-  // Returns a tip
-
-
-  tip.hide = function () {
-    var nodel = getNodeEl();
-    nodel.style('opacity', 0).style('pointer-events', 'none');
-    return tip;
-  }; // Public: Proxy attr calls to the d3 tip container.
-  // Sets or gets attribute value.
-  //
-  // n - name of the attribute
-  // v - value of the attribute
-  //
-  // Returns tip or attribute value
-  // eslint-disable-next-line no-unused-vars
-
-
-  tip.attr = function (n, v) {
-    if (arguments.length < 2 && typeof n === 'string') {
-      return getNodeEl().attr(n);
-    }
-
-    var args = Array.prototype.slice.call(arguments);
-
-    _d3Selection.selection.prototype.attr.apply(getNodeEl(), args);
-
-    return tip;
-  }; // Public: Proxy style calls to the d3 tip container.
-  // Sets or gets a style value.
-  //
-  // n - name of the property
-  // v - value of the property
-  //
-  // Returns tip or style property value
-  // eslint-disable-next-line no-unused-vars
-
-
-  tip.style = function (n, v) {
-    if (arguments.length < 2 && typeof n === 'string') {
-      return getNodeEl().style(n);
-    }
-
-    var args = Array.prototype.slice.call(arguments);
-
-    _d3Selection.selection.prototype.style.apply(getNodeEl(), args);
-
-    return tip;
-  }; // Public: Set or get the direction of the tooltip
-  //
-  // v - One of n(north), s(south), e(east), or w(west), nw(northwest),
-  //     sw(southwest), ne(northeast) or se(southeast)
-  //
-  // Returns tip or direction
-
-
-  tip.direction = function (v) {
-    if (!arguments.length) return direction;
-    direction = v == null ? v : functor(v);
-    return tip;
-  }; // Public: Sets or gets the offset of the tip
-  //
-  // v - Array of [x, y] offset
-  //
-  // Returns offset or
-
-
-  tip.offset = function (v) {
-    if (!arguments.length) return offset;
-    offset = v == null ? v : functor(v);
-    return tip;
-  }; // Public: sets or gets the html value of the tooltip
-  //
-  // v - String value of the tip
-  //
-  // Returns html value or tip
-
-
-  tip.html = function (v) {
-    if (!arguments.length) return html;
-    html = v == null ? v : functor(v);
-    return tip;
-  }; // Public: sets or gets the root element anchor of the tooltip
-  //
-  // v - root element of the tooltip
-  //
-  // Returns root node of tip
-
-
-  tip.rootElement = function (v) {
-    if (!arguments.length) return rootElement;
-    rootElement = v == null ? v : functor(v);
-    return tip;
-  }; // Public: destroys the tooltip and removes it from the DOM
-  //
-  // Returns a tip
-
-
-  tip.destroy = function () {
-    if (node) {
-      getNodeEl().remove();
-      node = null;
-    }
-
-    return tip;
-  };
-
-  function d3TipDirection() {
-    return 'n';
-  }
-
-  function d3TipOffset() {
-    return [0, 0];
-  }
-
-  function d3TipHTML() {
-    return ' ';
-  }
-
-  var directionCallbacks = (0, _d3Collection.map)({
-    n: directionNorth,
-    s: directionSouth,
-    e: directionEast,
-    w: directionWest,
-    nw: directionNorthWest,
-    ne: directionNorthEast,
-    sw: directionSouthWest,
-    se: directionSouthEast
-  }),
-      directions = directionCallbacks.keys();
-
-  function directionNorth() {
-    var bbox = getScreenBBox(this);
-    return {
-      top: bbox.n.y - node.offsetHeight,
-      left: bbox.n.x - node.offsetWidth / 2
-    };
-  }
-
-  function directionSouth() {
-    var bbox = getScreenBBox(this);
-    return {
-      top: bbox.s.y,
-      left: bbox.s.x - node.offsetWidth / 2
-    };
-  }
-
-  function directionEast() {
-    var bbox = getScreenBBox(this);
-    return {
-      top: bbox.e.y - node.offsetHeight / 2,
-      left: bbox.e.x
-    };
-  }
-
-  function directionWest() {
-    var bbox = getScreenBBox(this);
-    return {
-      top: bbox.w.y - node.offsetHeight / 2,
-      left: bbox.w.x - node.offsetWidth
-    };
-  }
-
-  function directionNorthWest() {
-    var bbox = getScreenBBox(this);
-    return {
-      top: bbox.nw.y - node.offsetHeight,
-      left: bbox.nw.x - node.offsetWidth
-    };
-  }
-
-  function directionNorthEast() {
-    var bbox = getScreenBBox(this);
-    return {
-      top: bbox.ne.y - node.offsetHeight,
-      left: bbox.ne.x
-    };
-  }
-
-  function directionSouthWest() {
-    var bbox = getScreenBBox(this);
-    return {
-      top: bbox.sw.y,
-      left: bbox.sw.x - node.offsetWidth
-    };
-  }
-
-  function directionSouthEast() {
-    var bbox = getScreenBBox(this);
-    return {
-      top: bbox.se.y,
-      left: bbox.se.x
-    };
-  }
-
-  function initNode() {
-    var div = (0, _d3Selection.select)(document.createElement('div'));
-    div.style('position', 'absolute').style('top', 0).style('opacity', 0).style('pointer-events', 'none').style('box-sizing', 'border-box');
-    return div.node();
-  }
-
-  function getSVGNode(element) {
-    var svgNode = element.node();
-    if (!svgNode) return null;
-    if (svgNode.tagName.toLowerCase() === 'svg') return svgNode;
-    return svgNode.ownerSVGElement;
-  }
-
-  function getNodeEl() {
-    if (node == null) {
-      node = initNode(); // re-add node to DOM
-
-      rootElement.appendChild(node);
-    }
-
-    return (0, _d3Selection.select)(node);
-  } // Private - gets the screen coordinates of a shape
-  //
-  // Given a shape on the screen, will return an SVGPoint for the directions
-  // n(north), s(south), e(east), w(west), ne(northeast), se(southeast),
-  // nw(northwest), sw(southwest).
-  //
-  //    +-+-+
-  //    |   |
-  //    +   +
-  //    |   |
-  //    +-+-+
-  //
-  // Returns an Object {n, s, e, w, nw, sw, ne, se}
-
-
-  function getScreenBBox(targetShape) {
-    var targetel = target || targetShape;
-
-    while (targetel.getScreenCTM == null && targetel.parentNode != null) {
-      targetel = targetel.parentNode;
-    }
-
-    var bbox = {},
-        matrix = targetel.getScreenCTM(),
-        tbbox = targetel.getBBox(),
-        width = tbbox.width,
-        height = tbbox.height,
-        x = tbbox.x,
-        y = tbbox.y;
-    point.x = x;
-    point.y = y;
-    bbox.nw = point.matrixTransform(matrix);
-    point.x += width;
-    bbox.ne = point.matrixTransform(matrix);
-    point.y += height;
-    bbox.se = point.matrixTransform(matrix);
-    point.x -= width;
-    bbox.sw = point.matrixTransform(matrix);
-    point.y -= height / 2;
-    bbox.w = point.matrixTransform(matrix);
-    point.x += width;
-    bbox.e = point.matrixTransform(matrix);
-    point.x -= width / 2;
-    point.y -= height / 2;
-    bbox.n = point.matrixTransform(matrix);
-    point.y += height;
-    bbox.s = point.matrixTransform(matrix);
-    return bbox;
-  } // Private - replace D3JS 3.X d3.functor() function
-
-
-  function functor(v) {
-    return typeof v === 'function' ? v : function () {
-      return v;
-    };
-  }
-
-  return tip;
-}
-},{"d3-collection":"../../node_modules/d3-collection/src/index.js","d3-selection":"../../node_modules/d3-selection/src/index.js"}],"dates.json":[function(require,module,exports) {
-module.exports = {
-  "julie": [{
-    "date": "13.03.20",
-    "pas": 3308
-  }, {
-    "date": "14.03.20",
-    "pas": 2465
-  }, {
-    "date": "15.03.20",
-    "pas": 1799
-  }, {
-    "date": "16.03.20",
-    "pas": 2108
-  }, {
-    "date": "17.03.20",
-    "pas": 96
-  }, {
-    "date": "18.03.20",
-    "pas": 3265
-  }, {
-    "date": "19.03.20",
-    "pas": 3284
-  }, {
-    "date": "20.03.20",
-    "pas": 202
-  }, {
-    "date": "21.03.20",
-    "pas": 1957
-  }, {
-    "date": "22.03.20",
-    "pas": 25
-  }, {
-    "date": "23.03.20",
-    "pas": 114
-  }, {
-    "date": "24.03.20",
-    "pas": 734
-  }, {
-    "date": "25.03.20",
-    "pas": 2166
-  }, {
-    "date": "26.03.20",
-    "pas": 1445
-  }, {
-    "date": "27.03.20",
-    "pas": 292
-  }, {
-    "date": "28.03.20",
-    "pas": 571
-  }, {
-    "date": "29.03.20",
-    "pas": 3670
-  }, {
-    "date": "30.03.20",
-    "pas": 631
-  }, {
-    "date": "31.03.20",
-    "pas": 1680
-  }, {
-    "date": "01.04.20",
-    "pas": 2813
-  }, {
-    "date": "02.04.20",
-    "pas": 5720
-  }, {
-    "date": "03.04.20",
-    "pas": 572
-  }, {
-    "date": "04.04.20",
-    "pas": 2844
-  }, {
-    "date": "05.04.20",
-    "pas": 2743
-  }, {
-    "date": "06.04.20",
-    "pas": 522
-  }, {
-    "date": "07.04.20",
-    "pas": 1997
-  }, {
-    "date": "08.04.20",
-    "pas": 1248
-  }, {
-    "date": "09.04.20",
-    "pas": 4407
-  }, {
-    "date": "10.04.20",
-    "pas": 3513
-  }, {
-    "date": "11.04.20",
-    "pas": 5936
-  }],
-  "ingrid": [{
-    "date": "13.03.20",
-    "pas": 5065
-  }, {
-    "date": "14.03.20",
-    "pas": 3465
-  }, {
-    "date": "15.03.20",
-    "pas": 140
-  }, {
-    "date": "16.03.20",
-    "pas": 1325
-  }, {
-    "date": "17.03.20",
-    "pas": 112
-  }, {
-    "date": "18.03.20",
-    "pas": 499
-  }, {
-    "date": "19.03.20",
-    "pas": 883
-  }, {
-    "date": "20.03.20",
-    "pas": 280
-  }, {
-    "date": "21.03.20",
-    "pas": 72
-  }, {
-    "date": "22.03.20",
-    "pas": 87
-  }, {
-    "date": "23.03.20",
-    "pas": 84
-  }, {
-    "date": "24.03.20",
-    "pas": 2562
-  }, {
-    "date": "25.03.20",
-    "pas": 141
-  }, {
-    "date": "26.03.20",
-    "pas": 63
-  }, {
-    "date": "27.03.20",
-    "pas": 39
-  }, {
-    "date": "28.03.20",
-    "pas": 124
-  }, {
-    "date": "29.03.20",
-    "pas": 23
-  }, {
-    "date": "30.03.20",
-    "pas": 137
-  }, {
-    "date": "31.03.20",
-    "pas": 60
-  }, {
-    "date": "01.04.20",
-    "pas": 91
-  }, {
-    "date": "02.04.20",
-    "pas": 354
-  }, {
-    "date": "03.04.20",
-    "pas": 432
-  }, {
-    "date": "04.04.20",
-    "pas": 2255
-  }, {
-    "date": "05.04.20",
-    "pas": 82
-  }, {
-    "date": "06.04.20",
-    "pas": 4011
-  }, {
-    "date": "07.04.20",
-    "pas": 2707
-  }, {
-    "date": "08.04.20",
-    "pas": 679
-  }, {
-    "date": "09.04.20",
-    "pas": 3440
-  }, {
-    "date": "10.04.20",
-    "pas": 4238
-  }, {
-    "date": "11.04.20",
-    "pas": 17
-  }]
-};
+},{"./dist/package.js":"../../node_modules/d3/dist/package.js","d3-array":"../../node_modules/d3-array/src/index.js","d3-axis":"../../node_modules/d3-axis/src/index.js","d3-brush":"../../node_modules/d3-brush/src/index.js","d3-chord":"../../node_modules/d3-chord/src/index.js","d3-collection":"../../node_modules/d3-collection/src/index.js","d3-color":"../../node_modules/d3-color/src/index.js","d3-contour":"../../node_modules/d3-contour/src/index.js","d3-dispatch":"../../node_modules/d3-dispatch/src/index.js","d3-drag":"../../node_modules/d3-drag/src/index.js","d3-dsv":"../../node_modules/d3-dsv/src/index.js","d3-ease":"../../node_modules/d3-ease/src/index.js","d3-fetch":"../../node_modules/d3-fetch/src/index.js","d3-force":"../../node_modules/d3-force/src/index.js","d3-format":"../../node_modules/d3-format/src/index.js","d3-geo":"../../node_modules/d3-geo/src/index.js","d3-hierarchy":"../../node_modules/d3-hierarchy/src/index.js","d3-interpolate":"../../node_modules/d3-interpolate/src/index.js","d3-path":"../../node_modules/d3-path/src/index.js","d3-polygon":"../../node_modules/d3-polygon/src/index.js","d3-quadtree":"../../node_modules/d3-quadtree/src/index.js","d3-random":"../../node_modules/d3-random/src/index.js","d3-scale":"../../node_modules/d3-scale/src/index.js","d3-scale-chromatic":"../../node_modules/d3-scale-chromatic/src/index.js","d3-selection":"../../node_modules/d3-selection/src/index.js","d3-shape":"../../node_modules/d3-shape/src/index.js","d3-time":"../../node_modules/d3-time/src/index.js","d3-time-format":"../../node_modules/d3-time-format/src/index.js","d3-timer":"../../node_modules/d3-timer/src/index.js","d3-transition":"../../node_modules/d3-transition/src/index.js","d3-voronoi":"../../node_modules/d3-voronoi/src/index.js","d3-zoom":"../../node_modules/d3-zoom/src/index.js"}],"data.json":[function(require,module,exports) {
+module.exports = [{
+  "date": "13.03.20",
+  "pas": 5065
+}, {
+  "date": "14.03.20",
+  "pas": 3465
+}, {
+  "date": "15.03.20",
+  "pas": 140
+}, {
+  "date": "16.03.20",
+  "pas": 1325
+}, {
+  "date": "17.03.20",
+  "pas": 112
+}, {
+  "date": "18.03.20",
+  "pas": 499
+}, {
+  "date": "19.03.20",
+  "pas": 883
+}, {
+  "date": "20.03.20",
+  "pas": 280
+}, {
+  "date": "21.03.20",
+  "pas": 72
+}, {
+  "date": "22.03.20",
+  "pas": 87
+}, {
+  "date": "23.03.20",
+  "pas": 84
+}, {
+  "date": "24.03.20",
+  "pas": 2562
+}, {
+  "date": "25.03.20",
+  "pas": 141
+}, {
+  "date": "26.03.20",
+  "pas": 63
+}, {
+  "date": "26.03.20",
+  "pas": 39
+}, {
+  "date": "28.03.20",
+  "pas": 124
+}, {
+  "date": "29.03.20",
+  "pas": 23
+}, {
+  "date": "30.03.20",
+  "pas": 137
+}, {
+  "date": "21.03.20",
+  "pas": 60
+}, {
+  "date": "01.04.20",
+  "pas": 91
+}, {
+  "date": "02.04.20",
+  "pas": 354
+}, {
+  "date": "03.04.20",
+  "pas": 432
+}, {
+  "date": "04.04.20",
+  "pas": 2255
+}, {
+  "date": "05.04.20",
+  "pas": 82
+}, {
+  "date": "06.04.20",
+  "pas": 4011
+}, {
+  "date": "07.04.20",
+  "pas": 2707
+}, {
+  "date": "08.04.20",
+  "pas": 679
+}, {
+  "date": "09.04.20",
+  "pas": 3440
+}, {
+  "date": "10.04.20",
+  "pas": 4238
+}, {
+  "date": "11.04.20",
+  "pas": 17
+}];
 },{}],"graph.js":[function(require,module,exports) {
 "use strict";
 
 var d3 = _interopRequireWildcard(require("d3"));
 
-var _d3Tip = _interopRequireDefault(require("d3-tip"));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
 function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
-d3.tip = _d3Tip.default;
+var DATA = require('./data.json');
 
-var DATA = require('./dates.json');
-
-var dataJulie = DATA.julie;
-var dataIngrid = DATA.ingrid;
-var WIDTH = 1400;
+console.log(DATA);
+var WIDTH = 1000;
 var HEIGHT = 500;
 var MARGIN = 5; // espace entre les batons
 
@@ -29432,30 +29092,21 @@ var MARGIN_TOP = HEIGHT / 10;
 var MARGIN_BOTTOM = HEIGHT / 7; // on fait de la place pour les noms
 
 var GRAPH_HEIGHT = HEIGHT - MARGIN_BOTTOM;
-var MARGIN_LEFT = WIDTH / 20;
-var GRAPH_WIDTH = WIDTH - MARGIN_LEFT; // mouseover 
-
-var tip1 = d3.tip().attr('class', 'd3-tip').offset([-10, 0]).html(function (d) {
-  return "Ingrid : " + d.pas;
-});
-var tip2 = d3.tip().attr('class', 'd3-tip').offset([-10, 0]).html(function (d) {
-  return "Julie : " + d.pas; // "<strong>Pas:</strong> <span style='color:pink'>" + d.pas + "</span>"
-});
+var MARGIN_LEFT = WIDTH / 10;
+var GRAPH_WIDTH = WIDTH - MARGIN_LEFT;
 var svg = d3.select('body').append('svg').attr('width', WIDTH).attr('height', HEIGHT);
 d3.select("body").attr("align", "center"); // alignement du graphique
-// NOUVEAU diviser par 2 pour avoir la place
 
-var BAR_WIDTH = GRAPH_WIDTH / dataIngrid.length / 2; // largeur des batons
+var BAR_WIDTH = GRAPH_WIDTH / DATA.length; // largeur des batons
 // Echelle hauteur
 // Conversion du range des données en range de pixel
 
-var yScale = d3.scaleLinear().domain([0, d3.max(dataIngrid, function (d) {
+var yScale = d3.scaleLinear().domain([0, d3.max(DATA, function (d) {
   return d.pas;
 })]).range([GRAPH_HEIGHT - MARGIN_TOP, 0]);
 var bars = svg.append('g').attr('transform', "translate(".concat(MARGIN_LEFT, ", ").concat(MARGIN_TOP, ")"));
-bars.selectAll('rect').data(dataIngrid).enter().append('rect') // NOUVEAU multiplié par 2
-.attr('x', function (d, i) {
-  return i * BAR_WIDTH * 2;
+bars.selectAll('rect').data(DATA).enter().append('rect').attr('x', function (d, i) {
+  return i * BAR_WIDTH;
 }) // position horizontale
 .attr('width', BAR_WIDTH - MARGIN) // largeur
 .attr('y', function (d) {
@@ -29464,28 +29115,12 @@ bars.selectAll('rect').data(dataIngrid).enter().append('rect') // NOUVEAU multip
 .attr('height', function (d) {
   return GRAPH_HEIGHT - MARGIN_TOP - yScale(d.pas);
 }) // hauteur
-.attr('fill', '#fff0a3').attr('rx', 4).on('mouseover', tip1.show).on('mouseout', tip1.hide).call(tip1); // NOUVEAU une 2e serie de batons
-
-var bars2 = svg.append('g').attr('transform', "translate(".concat(MARGIN_LEFT, ", ").concat(MARGIN_TOP, ")"));
-bars2.selectAll('rect').data(dataJulie).enter().append('rect').attr('x', function (d, i) {
-  return i * BAR_WIDTH * 2 + BAR_WIDTH;
-}) // position horizontale
-.attr('width', BAR_WIDTH - MARGIN) // largeur
-.attr('y', function (d) {
-  return yScale(d.pas);
-}) // position verticale
-.attr('height', function (d) {
-  return GRAPH_HEIGHT - MARGIN_TOP - yScale(d.pas);
-}) // hauteur
-.attr('fill', '#A5C8FE').attr('rx', 4).on('mouseover', tip2.show).on('mouseout', tip2.hide).call(tip2); // FIN NOUVEAUX BATONS
-
+.attr('fill', 'pink').attr('rx', 4);
 var dates = svg.append('g').attr('transform', "translate(".concat(MARGIN_LEFT - 20, ", 20)"));
-dates.selectAll('text').data(dataIngrid).enter().append('text') // NOUVEAU multiplié par 2
-.attr('x', function (d, i) {
-  return i * BAR_WIDTH * 2 + BAR_WIDTH * 2;
+dates.selectAll('text').data(DATA).enter().append('text').attr('x', function (d, i) {
+  return i * BAR_WIDTH + BAR_WIDTH / 2;
 }).attr('y', HEIGHT - MARGIN_BOTTOM + 20).attr('text-anchor', 'middle').attr('font-family', 'sans-serif').attr('font-size', 13).attr('transform', function (d, i) {
-  // NOUVEAU multiplié par 2
-  var x = i * BAR_WIDTH * 2 + BAR_WIDTH * 2;
+  var x = i * BAR_WIDTH + BAR_WIDTH / 2;
   var y = HEIGHT - MARGIN_BOTTOM + 20;
   return "rotate(-65, ".concat(x, ", ").concat(y, ")");
 }).text(function (d) {
@@ -29495,7 +29130,7 @@ var axisY = d3.axisLeft().scale(yScale).tickFormat(function (d) {
   return "".concat(d / 1, " pas");
 }).ticks(5);
 svg.append('g').attr('transform', "translate(".concat(MARGIN_LEFT - 3, ", ").concat(MARGIN_TOP, ")")).call(axisY).attr('font-size', 13);
-},{"d3":"../../node_modules/d3/index.js","d3-tip":"../../node_modules/d3-tip/index.js","./dates.json":"dates.json"}],"../../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"d3":"../../node_modules/d3/index.js","./data.json":"data.json"}],"../../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -29523,7 +29158,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50425" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64173" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

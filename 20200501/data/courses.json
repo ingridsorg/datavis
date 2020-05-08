@@ -1,0 +1,37 @@
+{
+    "courses1": [
+        {
+            "durée": 56,
+            "nd de produits achetés": 59,
+            "prix total": 122.4
+        }
+    ],
+    "courses2": [
+        {
+            "durée": 12,
+            "nd de produits achetés": 3,
+            "prix total": 13.6
+        }
+    ],
+    "courses3": [
+        {
+            "durée": 25,
+            "nd de produits achetés": 12,
+            "prix total": 33.5
+        }
+    ],
+    "courses4": [
+        {
+            "durée": 15,
+            "nd de produits achetés": 5,
+            "prix total": 12.25
+        }
+    ],
+    "courses5": [
+        {
+            "durée": 45,
+            "nd de produits achetés": 55,
+            "prix total": 118.4
+        }
+    ]
+}
