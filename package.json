@@ -22,7 +22,7 @@
     "ramda": "^0.27.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "xlsx": "^0.15.6"
+    "xlsx": "^0.17.0"
   },
   "devDependencies": {
     "parcel-bundler": "^1.12.4"
