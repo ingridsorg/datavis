@@ -15,9 +15,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "billboard.js": "^1.12.7",
-    "d3": "^5.15.0",
-    "d3-scale": "^3.2.1",
+    "billboard.js": "^3.6.0",
+    "d3": "^7.6.1",
+    "d3-scale": "^4.0.2",
     "d3-tip": "^0.9.1",
     "ramda": "^0.27.0",
     "react": "^16.13.1",
